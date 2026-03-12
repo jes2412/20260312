@@ -49,19 +49,18 @@ def send_order_email(
     smtp_port: Optional[int] = None,
     smtp_user: Optional[str] = None,
     smtp_password: Optional[str] = None,
-) -> bool:
+) -> tuple[bool, Optional[str]]:
     """
     발주 메일을 to_email(엑셀의 거래처 담당자 이메일)로 발송.
-    발송 계정(From)은 smtp_user 또는 환경변수, 미설정 시 SENDER_EMAIL 사용.
-    SMTP 미설정 시 False 반환.
+    반환: (성공 여부, 실패 시 오류 메시지)
     """
     host = smtp_host or os.environ.get("SMTP_HOST")
     port = smtp_port or int(os.environ.get("SMTP_PORT", "587"))
     user = smtp_user or os.environ.get("SMTP_USER") or SENDER_EMAIL
     password = smtp_password or os.environ.get("SMTP_PASSWORD")
 
-    if not all([host, user, password]):
-        return False
+    if not host or not user or not password:
+        return False, "SMTP 설정 없음: Vercel/로컬에서 SMTP_HOST, SMTP_USER, SMTP_PASSWORD 환경변수를 설정하세요. Gmail은 앱 비밀번호 필요."
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -70,13 +69,19 @@ def send_order_email(
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
     try:
-        with smtplib.SMTP(host, port) as server:
+        with smtplib.SMTP(host, port, timeout=30) as server:
             server.starttls()
             server.login(user, password)
             server.sendmail(user, to_email, msg.as_string())
-        return True
-    except Exception:
-        return False
+        return True, None
+    except smtplib.SMTPAuthenticationError as e:
+        return False, f"SMTP 로그인 실패(계정/앱 비밀번호 확인): {e}"
+    except smtplib.SMTPException as e:
+        return False, f"SMTP 오류: {e}"
+    except OSError as e:
+        return False, f"연결 오류(방화벽/타임아웃): {e}"
+    except Exception as e:
+        return False, str(e)
 
 
 def send_orders_to_suppliers(
@@ -110,11 +115,11 @@ def send_orders_to_suppliers(
         subject, body = render_template(
             subject_tpl, body_tpl, store_name, supplier_name, item_list_text
         )
-        sent = send_order_email(subject, body, to_email=to_email)
+        sent, err_msg = send_order_email(subject, body, to_email=to_email)
         results.append({
             "supplier": supplier_name,
             "to_email": to_email,
             "sent": sent,
-            "error": None if sent else "SMTP 설정 필요 또는 발송 실패",
+            "error": None if sent else (err_msg or "발송 실패"),
         })
     return results

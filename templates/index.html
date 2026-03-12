@@ -228,6 +228,11 @@
           errEl.classList.remove('hidden');
           return;
         }
+        const failed = (data.results || []).filter(r => r && !r.sent && r.error);
+        if (failed.length) {
+          errEl.textContent = failed[0].error || `발송 실패 ${data.sent_count}/${data.total_count}건`;
+          errEl.classList.remove('hidden');
+        }
         okEl.innerHTML = `발송 요청 완료. 성공 ${data.sent_count}/${data.total_count}건 (수신: 각 거래처 담당자 이메일).`;
         okEl.classList.remove('hidden');
       } catch (e) {
