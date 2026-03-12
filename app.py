@@ -77,7 +77,7 @@ def require_deployment_auth():
     if not pwd:
         from flask import Response
         return Response(
-            "보안 설정이 되어 있지 않습니다. Vercel에서 DEPLOYMENT_PASSWORD 환경 변수를 설정한 뒤 재배포해 주세요.",
+            "Security not configured. Set DEPLOYMENT_PASSWORD in Vercel Environment Variables and redeploy.",
             503,
             {"Content-Type": "text/plain; charset=utf-8"},
         )
