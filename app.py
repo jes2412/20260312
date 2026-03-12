@@ -51,38 +51,6 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB
 # 기본 엑셀 경로 (프로젝트 내 학습용 엑셀)
 DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "domino_inventory_training.xlsx")
 
-# 배포 보안: Vercel 환경변수 DEPLOYMENT_PASSWORD 를 설정하면 비밀번호 인증 사용
-
-
-def _get_deployment_password():
-    """요청 시점에 환경변수 읽기 (Vercel 서버리스에서 반영되도록)"""
-    return (os.environ.get("DEPLOYMENT_PASSWORD") or "").strip()
-
-
-def _check_deployment_auth():
-    """DEPLOYMENT_PASSWORD 가 설정된 경우에만 Basic 인증 필수"""
-    pwd = _get_deployment_password()
-    if not pwd:
-        return True  # 비밀번호 미설정 시 그냥 통과
-    auth = request.authorization
-    return bool(auth and auth.type == "basic" and auth.password == pwd)
-
-
-@app.before_request
-def require_deployment_auth():
-    if request.path.rstrip("/") == "/api/check-auth-env":
-        return None
-    if not _check_deployment_auth():
-        from flask import Response
-        res = Response("인증이 필요합니다.", 401, {"WWW-Authenticate": "Basic realm=\"재고 발주 시스템\""})
-        return res
-
-
-@app.route("/api/check-auth-env")
-def check_auth_env():
-    """DEPLOYMENT_PASSWORD 설정 여부 확인 (비밀번호 값은 노출하지 않음). 배포 후 로그인창이 안 뜰 때 확인용."""
-    return jsonify({"password_configured": bool(_get_deployment_password())})
-
 
 @app.route("/")
 def index():
