@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>접근 불가 - 도미노 재고·발주</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+      --error: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; line-height: 1.5; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 400px; width: 100%; padding: 2rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 0.5rem 0; color: var(--error); }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover { background: #3d4d66; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>접근 불가</h1>
+      <p class="subtitle">비밀번호가 일치하지 않거나 입력되지 않았습니다.</p>
+      <a href="{{ url_for('login_page') }}" class="btn">다시 로그인</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -6,10 +6,11 @@
 import os
 import json
 import math
+import hashlib
 from dotenv import load_dotenv
 load_dotenv()
 from io import BytesIO
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, redirect, url_for
 import pandas as pd
 
 
@@ -47,6 +48,7 @@ app = Flask(
     template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"),
 )
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-me-in-production")
 
 # 기본 엑셀 경로 (프로젝트 내 학습용 엑셀)
 DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "domino_inventory_training.xlsx")
@@ -55,6 +57,59 @@ DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "domino_inventory_t
 def _get_deployment_password():
     """DEPLOYMENT_PASSWORD 환경변수 (요청 시점에 읽음)"""
     return (os.environ.get("DEPLOYMENT_PASSWORD") or "").strip()
+
+
+def _auth_token():
+    """인증된 경우에만 설정되는 쿠키 값 (비밀번호 해시)"""
+    pwd = _get_deployment_password()
+    if not pwd:
+        return ""
+    return hashlib.sha256(pwd.encode("utf-8")).hexdigest()
+
+
+def _is_authenticated():
+    """쿠키로 로그인 여부 확인"""
+    return request.cookies.get("dp_auth") == _auth_token()
+
+
+# 인증 없이 허용할 경로 (로그인·오류·상태 확인)
+_AUTH_EXEMPT = {"/login", "/auth-error", "/auth-status", "/check-auth-env", "/api/check-auth-env"}
+
+
+@app.before_request
+def require_auth():
+    """DEPLOYMENT_PASSWORD 가 설정된 경우, 미인증 시 /login, 비밀번호 오류 시 /auth-error 로."""
+    pwd = _get_deployment_password()
+    if not pwd:
+        return None
+    path = request.path.rstrip("/") or "/"
+    if path in _AUTH_EXEMPT:
+        return None
+    if _is_authenticated():
+        return None
+    return redirect(url_for("login_page"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login_page():
+    """비밀번호 입력 페이지. POST 시 검사 후 맞으면 / 로, 틀리면 /auth-error 로."""
+    pwd = _get_deployment_password()
+    if not pwd:
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        submitted = (request.form.get("password") or "").strip()
+        if submitted == pwd:
+            resp = redirect(url_for("index"))
+            resp.set_cookie("dp_auth", _auth_token(), max_age=60 * 60 * 24 * 7, httponly=True, samesite="Lax")
+            return resp
+        return redirect(url_for("auth_error"))
+    return render_template("login.html")
+
+
+@app.route("/auth-error")
+def auth_error():
+    """비밀번호 오류 또는 미입력 시 리다이렉트되는 오류 페이지."""
+    return render_template("auth_error.html")
 
 
 @app.route("/api/check-auth-env")
