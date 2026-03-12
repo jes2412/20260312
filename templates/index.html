@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>도미노 재고·발주 자동화</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+      --accent: #e31837;
+      --accent-hover: #c41430;
+      --success: #2ea043;
+      --warning: #d4a72c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1.1rem; margin: 0 0 1rem 0; font-weight: 500; }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+    input[type="file"] { font-size: 0.9rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: #3d4d66; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .email-to { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .status-required { color: var(--warning); font-weight: 500; }
+    .status-ok { color: var(--success); }
+    .summary { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .summary span { color: var(--muted); }
+    .summary strong { color: var(--text); }
+    .error { color: #f85149; margin-top: 0.5rem; }
+    .success { color: var(--success); margin-top: 0.5rem; }
+    .hidden { display: none; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>도미노 재고·발주 자동화</h1>
+    <p class="subtitle">분석할 파일을 입력하면 재고를 분석하고, 부족 시 엑셀 담당자에게 발주 메일을 발송합니다.</p>
+
+    <div class="card">
+      <h2>1. 재고 분석</h2>
+      <p class="email-to">엑셀(.xlsx/.xls) 또는 CSV 선택. 미선택 시 domino_inventory_training.xlsx 사용</p>
+      <div class="row">
+        <input type="file" id="file" accept=".xlsx,.xls,.csv" />
+        <button type="button" class="btn btn-primary" id="btnAnalyze">재고 분석 실행</button>
+        <span class="email-to">발송 계정: {{ sender_email }} · 수신: 엑셀 내 각 거래처 담당자 이메일</span>
+      </div>
+      <p class="error hidden" id="analyzeError"></p>
+    </div>
+
+    <div class="card">
+      <h2>2. 발주 메일 발송</h2>
+      <p class="email-to">재고 분석 후, 발주가 필요한 경우 아래 버튼으로 domino_inventory_training 엑셀의 담당자에게 메일을 보냅니다.</p>
+      <button type="button" class="btn btn-primary" id="btnSendOrders" disabled>발주 메일 발송 (엑셀 담당자에게)</button>
+      <p class="error hidden" id="sendError"></p>
+      <p class="success hidden" id="sendSuccess"></p>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <h2>3. 재고 분석 결과</h2>
+      <div class="summary" id="summary"></div>
+      <div style="overflow-x: auto;">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>품목코드</th>
+              <th>재료명</th>
+              <th>규격</th>
+              <th>단위</th>
+              <th>현재재고</th>
+              <th>안전재고</th>
+              <th>MOQ</th>
+              <th>발주권장</th>
+              <th>상태</th>
+              <th>거래처</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>수신 담당자 이메일 (엑셀 기준)</h2>
+      <p class="email-to">발주 메일이 발송되는 수신처 목록입니다.</p>
+      <div id="recipientsSection">
+        <p class="muted" id="recipientsLoading">불러오는 중…</p>
+        <table class="recipients-table hidden" id="recipientsTable">
+          <thead>
+            <tr>
+              <th>거래처명</th>
+              <th>담당자</th>
+              <th>이메일</th>
+            </tr>
+          </thead>
+          <tbody id="recipientsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lastAnalysis = null;
+
+    document.getElementById('btnAnalyze').addEventListener('click', async () => {
+      const errEl = document.getElementById('analyzeError');
+      const card = document.getElementById('resultCard');
+      errEl.classList.add('hidden');
+      errEl.textContent = '';
+
+      const formData = new FormData();
+      const fileInput = document.getElementById('file');
+      if (fileInput.files && fileInput.files[0]) formData.append('file', fileInput.files[0]);
+      try {
+        const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || '분석 실패';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        lastAnalysis = data;
+        renderTable(data.inventory);
+        document.getElementById('summary').innerHTML =
+          `<span>전체 품목 <strong>${data.summary.total_items}</strong>개</span>` +
+          `<span>발주 필요 <strong>${data.summary.order_required_count}</strong>개</span>` +
+          `<span>거래처 <strong>${data.summary.supplier_count}</strong>곳</span>`;
+        document.getElementById('btnSendOrders').disabled = !data.summary.order_required_count;
+        card.classList.remove('hidden');
+      } catch (e) {
+        errEl.textContent = '연결 오류: ' + e.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escapeHtml(r.품목코드)}</td>
+          <td>${escapeHtml(r.재료명)}</td>
+          <td>${escapeHtml(String(r.규격))}</td>
+          <td>${escapeHtml(r.단위)}</td>
+          <td>${r.현재재고}</td>
+          <td>${r.안전재고}</td>
+          <td>${r.MOQ}</td>
+          <td>${r.발주권장수량 ?? '-'}</td>
+          <td class="${r.상태 === '발주 필요' ? 'status-required' : 'status-ok'}">${escapeHtml(r.상태)}</td>
+          <td>${escapeHtml(r.거래처)}</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('btnSendOrders').addEventListener('click', async () => {
+      if (!lastAnalysis || !lastAnalysis.orders_by_supplier) return;
+      const errEl = document.getElementById('sendError');
+      const okEl = document.getElementById('sendSuccess');
+      errEl.classList.add('hidden');
+      okEl.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/send-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders_by_supplier: lastAnalysis.orders_by_supplier,
+            store_name: '도미노피자 점포'
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || '발송 실패';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        okEl.innerHTML = `발송 요청 완료. 성공 ${data.sent_count}/${data.total_count}건 (수신: 각 거래처 담당자 이메일).`;
+        okEl.classList.remove('hidden');
+      } catch (e) {
+        errEl.textContent = '연결 오류: ' + e.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    // 하단 수신 담당자 이메일 표
+    (async () => {
+      try {
+        const res = await fetch('/api/recipients');
+        const data = await res.json();
+        const loading = document.getElementById('recipientsLoading');
+        const table = document.getElementById('recipientsTable');
+        const tbody = document.getElementById('recipientsBody');
+        loading.classList.add('hidden');
+        const rows = data.suppliers && data.suppliers.length ? data.suppliers : data.inventory_emails.map(e => ({ 거래처명: e.거래처 || '-', 담당자: '-', 이메일: e.이메일 }));
+        if (rows.length) {
+          tbody.innerHTML = rows.map(r => `
+            <tr>
+              <td>${escapeHtml(r.거래처명 || r.거래처 || '-')}</td>
+              <td>${escapeHtml(r.담당자 || '-')}</td>
+              <td>${escapeHtml(r.이메일 || '')}</td>
+            </tr>
+          `).join('');
+          table.classList.remove('hidden');
+        } else {
+          loading.textContent = '엑셀 파일이 없거나 수신처가 없습니다.';
+        }
+      } catch (e) {
+        document.getElementById('recipientsLoading').textContent = '수신처 목록을 불러오지 못했습니다.';
+      }
+    })();
+  </script>
+</body>
+</html>
