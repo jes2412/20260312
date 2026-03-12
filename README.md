@@ -36,6 +36,12 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Vercel 배포 (404 방지)
+
+- **vercel.json**: 모든 경로 `/(.*)` 를 `/api/index` 로 보내서 첫 페이지(/) 포함 전체를 Flask가 처리하도록 했습니다.
+- **api/index.py**: Vercel 서버리스 진입점. `/api/index` 로 들어온 요청의 경로를 `/` 등으로 보정한 뒤 Flask 앱에 넘깁니다.
+- 배포 후 루트(/)에서 404가 나지 않으려면, Vercel 프로젝트 설정에서 **Root Directory**를 저장소 루트로 두고 배포하면 됩니다.
+
 브라우저에서 **http://localhost:5000** 접속 후:
 
 1. (선택) 분석할 **파일 선택** (엑셀/CSV). 비우면 domino_inventory_training.xlsx 사용

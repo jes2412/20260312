@@ -42,7 +42,10 @@ from inventory import (
 )
 from email_sender import send_orders_to_suppliers, SENDER_EMAIL
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"),
+)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB
 
 # 기본 엑셀 경로 (프로젝트 내 학습용 엑셀)
