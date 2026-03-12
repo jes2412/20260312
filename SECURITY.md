@@ -64,6 +64,25 @@
 
 비밀번호를 쓰지 않으려면 Vercel에서 **DEPLOYMENT_PASSWORD** 변수를 삭제한 뒤 다시 Redeploy 하면 됩니다.
 
+---
+
+### 로그인 창이 안 뜰 때
+
+1. **환경 변수 적용 여부 확인**  
+   브라우저에서 아래 주소로 접속해 보세요.  
+   `https://본인사이트주소.vercel.app/api/check-auth-env`  
+   - `{"password_configured": true}` → 비밀번호가 설정된 상태입니다. 이 경우 로그인 창이 떠야 합니다. (캐시 삭제 후 다시 접속해 보세요.)  
+   - `{"password_configured": false}` → **DEPLOYMENT_PASSWORD가 앱에 전달되지 않은 상태**입니다.
+
+2. **`password_configured: false`일 때 점검**  
+   - Vercel **Settings** → **Environment Variables**에서  
+     - 이름이 **정확히** `DEPLOYMENT_PASSWORD`인지 확인 (대소문자, 오타 없이).  
+     - **Production**에 체크가 되어 있는지 확인.  
+   - **한 번 더 Redeploy**: Deployments → 최신 배포 **⋮** → **Redeploy** → 완료될 때까지 대기.
+
+3. **특수문자 비밀번호**  
+   `!`, `#` 등이 들어가면 Vercel 입력란에서 그대로 넣어도 됩니다. 값은 비공개로 저장됩니다.
+
 ### Vercel Deployment Protection (선택)
 
 - [프로젝트] → **Settings** → **Deployment Protection**
