@@ -60,27 +60,18 @@ def _get_deployment_password():
 
 
 def _check_deployment_auth():
-    """DEPLOYMENT_PASSWORD 가 없으면 접근 차단, 있으면 Basic 인증 통과 시만 허용"""
+    """DEPLOYMENT_PASSWORD 가 설정된 경우에만 Basic 인증 필수"""
     pwd = _get_deployment_password()
     if not pwd:
-        return False  # 비밀번호 미설정 = 보안 미적용 상태로 간주 → 접근 차단
+        return True  # 비밀번호 미설정 시 그냥 통과
     auth = request.authorization
     return bool(auth and auth.type == "basic" and auth.password == pwd)
 
 
 @app.before_request
 def require_deployment_auth():
-    # 설정 확인용 경로는 인증 생략 (배포 후 확인용)
     if request.path.rstrip("/") == "/api/check-auth-env":
         return None
-    pwd = _get_deployment_password()
-    if not pwd:
-        from flask import Response
-        return Response(
-            "Security not configured. Set DEPLOYMENT_PASSWORD in Vercel Environment Variables and redeploy.",
-            503,
-            {"Content-Type": "text/plain; charset=utf-8"},
-        )
     if not _check_deployment_auth():
         from flask import Response
         res = Response("인증이 필요합니다.", 401, {"WWW-Authenticate": "Basic realm=\"재고 발주 시스템\""})
