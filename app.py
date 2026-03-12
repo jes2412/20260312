@@ -58,8 +58,9 @@ def _get_deployment_password():
 
 
 @app.route("/api/check-auth-env")
+@app.route("/auth-status")
 def check_auth_env():
-    """DEPLOYMENT_PASSWORD 설정 여부 확인. 비밀번호 값은 노출하지 않음."""
+    """DEPLOYMENT_PASSWORD 설정 여부 확인. /auth-status 는 Vercel에서 /api/* 404 방지용."""
     return jsonify({"password_configured": bool(_get_deployment_password())})
 
 
