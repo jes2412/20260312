@@ -17,11 +17,52 @@
   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` (메일 발송)
   - `DEPLOYMENT_PASSWORD` (아래 “앱 비밀번호” 사용 시)
 
-### 배포 비밀번호 (앱 접근 제한)
+### DEPLOYMENT_PASSWORD 설정 방법 (단계별)
 
-- 환경 변수 **DEPLOYMENT_PASSWORD** 에 값을 넣으면, 사이트 접속 시 **Basic 인증** 비밀번호로 동작합니다.
-- 브라우저에서 ID/비밀번호 창이 뜨면, 비밀번호에 **DEPLOYMENT_PASSWORD** 값을 입력하면 됩니다. (사용자명은 아무 값이나 가능)
-- 비워 두면 비밀번호 없이 접속됩니다.
+사이트 접속 시 비밀번호를 물어보게 하려면 Vercel에 **DEPLOYMENT_PASSWORD** 환경 변수를 넣으면 됩니다.
+
+#### 1단계: Vercel 로그인 및 프로젝트 열기
+
+1. 브라우저에서 **https://vercel.com** 접속
+2. 로그인 후 상단 **Dashboard** 클릭
+3. 배포한 프로젝트(예: 20260312) **이름 클릭** → 프로젝트 페이지로 이동
+
+#### 2단계: Settings → Environment Variables 이동
+
+4. 상단 메뉴에서 **Settings** 탭 클릭
+5. 왼쪽 사이드바에서 **Environment Variables** 클릭  
+   (또는 스크롤해서 "Environment Variables" 섹션 찾기)
+
+#### 3단계: 변수 추가
+
+6. **Name (키)** 입력란에 아래를 **그대로** 입력:
+   ```
+   DEPLOYMENT_PASSWORD
+   ```
+7. **Value (값)** 입력란에 **사용할 비밀번호** 입력 (예: `MySecurePass123`)
+8. **Environment**에서 적용할 환경 선택:
+   - **Production**만 체크 → 실제 배포 주소(예: xxx.vercel.app)에만 적용
+   - **Preview**만 체크 → PR/브랜치 미리보기에만 적용
+   - **Development**만 체크 → 로컬 `vercel dev` 에만 적용  
+   → 보통 **Production** (또는 Production + Preview) 체크
+9. **Save** 버튼 클릭
+
+#### 4단계: 재배포 (필수)
+
+환경 변수는 **새로 배포할 때만** 반영됩니다.
+
+10. 상단 **Deployments** 탭 클릭
+11. 맨 위(최신) 배포 오른쪽 **⋮(점 세 개)** 클릭 → **Redeploy** 선택
+12. **Redeploy** 버튼 한 번 더 클릭
+
+몇 분 후 배포가 끝나면, 사이트 주소로 접속할 때 **브라우저 로그인 창**이 뜹니다.
+
+#### 접속할 때
+
+- **사용자 이름**: 아무 값이나 입력해도 됩니다 (예: `admin`, `user`)
+- **비밀번호**: 7단계에서 넣은 **DEPLOYMENT_PASSWORD** 값 그대로 입력
+
+비밀번호를 쓰지 않으려면 Vercel에서 **DEPLOYMENT_PASSWORD** 변수를 삭제한 뒤 다시 Redeploy 하면 됩니다.
 
 ### Vercel Deployment Protection (선택)
 
