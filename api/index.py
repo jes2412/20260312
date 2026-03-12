@@ -13,10 +13,11 @@ from app import app as flask_app
 
 
 def app(environ, start_response):
-    """PATH_INFO가 /api/index 로 들어오면 / 등으로 보정해 Flask가 첫 페이지를 찾도록 함"""
+    """PATH_INFO에서 /api/index[/...] 제거 후 원래 경로로 Flask에 전달 (/api/check-auth-env 등 유지)"""
     path = (environ.get("PATH_INFO") or "").strip() or "/"
     if path.startswith("/api/index"):
-        path = path[len("/api/index"):].strip() or "/"
+        path = path[len("/api/index"):].lstrip("/")
+        path = "/" + path if path else "/"
         environ = dict(environ)
         environ["PATH_INFO"] = path
         environ["SCRIPT_NAME"] = ""
