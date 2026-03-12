@@ -19,7 +19,8 @@
 
 ### DEPLOYMENT_PASSWORD 설정 방법 (단계별)
 
-사이트 접속 시 비밀번호를 물어보게 하려면 Vercel에 **DEPLOYMENT_PASSWORD** 환경 변수를 넣으면 됩니다.
+**DEPLOYMENT_PASSWORD를 설정하지 않으면 사이트는 열리지 않습니다.**  
+(비밀번호 미설정 = 보안 미적용으로 간주해 503으로 접근 차단합니다. 반드시 Vercel에 변수를 넣고 재배포해야 합니다.)
 
 #### 1단계: Vercel 로그인 및 프로젝트 열기
 
@@ -62,26 +63,34 @@
 - **사용자 이름**: 아무 값이나 입력해도 됩니다 (예: `admin`, `user`)
 - **비밀번호**: 7단계에서 넣은 **DEPLOYMENT_PASSWORD** 값 그대로 입력
 
-비밀번호를 쓰지 않으려면 Vercel에서 **DEPLOYMENT_PASSWORD** 변수를 삭제한 뒤 다시 Redeploy 하면 됩니다.
+비밀번호를 쓰지 않으려면 **DEPLOYMENT_PASSWORD를 삭제하면 안 됩니다.** 삭제 시 모든 접속이 503(보안 미설정)으로 차단됩니다. 공개 운영이 필요하면 코드에서 해당 보안 로직을 제거하는 방식으로 변경해야 합니다.
 
 ---
 
-### 로그인 창이 안 뜰 때
+### 로그인 창이 안 뜨고 페이지가 바로 열릴 때
+
+**보안(비밀번호) 코드는 적용되어 있습니다.**  
+페이지가 비밀번호 없이 바로 열린다면, 앱이 **DEPLOYMENT_PASSWORD를 비어 있다고 보고 있어서** “비밀번호 없음”으로 동작하는 상태입니다.
 
 1. **환경 변수 적용 여부 확인**  
-   브라우저에서 아래 주소로 접속해 보세요.  
+   브라우저에서 아래 주소로 접속하세요.  
    `https://본인사이트주소.vercel.app/api/check-auth-env`  
-   - `{"password_configured": true}` → 비밀번호가 설정된 상태입니다. 이 경우 로그인 창이 떠야 합니다. (캐시 삭제 후 다시 접속해 보세요.)  
-   - `{"password_configured": false}` → **DEPLOYMENT_PASSWORD가 앱에 전달되지 않은 상태**입니다.
+   - **`{"password_configured": true}`**  
+     → 비밀번호가 설정된 상태입니다. 이 경우 **메인 주소(/)를 시크릿 창**으로 열어 보세요. 로그인 창이 떠야 합니다.  
+   - **`{"password_configured": false}`**  
+     → **DEPLOYMENT_PASSWORD가 Vercel에서 앱으로 전달되지 않은 상태**입니다. 아래 2번을 진행하세요.
 
 2. **`password_configured: false`일 때 점검**  
-   - Vercel **Settings** → **Environment Variables**에서  
-     - 이름이 **정확히** `DEPLOYMENT_PASSWORD`인지 확인 (대소문자, 오타 없이).  
-     - **Production**에 체크가 되어 있는지 확인.  
-   - **한 번 더 Redeploy**: Deployments → 최신 배포 **⋮** → **Redeploy** → 완료될 때까지 대기.
+   - Vercel **Settings** → **Environment Variables**  
+     - **Name**: `DEPLOYMENT_PASSWORD` (대소문자·오타 없이 정확히)  
+     - **Value**: 사용할 비밀번호 (예: `MySecurePass123!`)  
+     - **Environment**: **Production** 반드시 체크 (그리고 실제로 접속하는 주소가 Production이어야 함)  
+   - 저장 후 **Deployments** → 최신 배포 **⋮** → **Redeploy** → 배포 완료까지 대기 (1~2분)  
+   - 다시 **`/api/check-auth-env`** 접속 → `true`로 바뀌었는지 확인  
+   - **메인 주소(/)를 시크릿 창**으로 새로 열기 → 로그인 창이 떠야 합니다.
 
 3. **특수문자 비밀번호**  
-   `!`, `#` 등이 들어가면 Vercel 입력란에서 그대로 넣어도 됩니다. 값은 비공개로 저장됩니다.
+   `!`, `#` 등은 Vercel 값란에 그대로 입력해도 됩니다.
 
 ### Vercel Deployment Protection (선택)
 
