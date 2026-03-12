@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보안 설정 확인 - 도미노 재고·발주</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b9cb3;
+      --success: #2ea043;
+      --warning: #d4a72c;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; line-height: 1.5; }
+    .container { max-width: 600px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1.1rem; margin: 0 0 1rem 0; font-weight: 500; }
+    .result { font-size: 1.1rem; margin: 0.5rem 0; }
+    .result.yes { color: var(--success); }
+    .result.no { color: var(--warning); }
+    .muted { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: var(--border);
+      color: var(--text);
+      text-decoration: none;
+      margin-top: 1rem;
+    }
+    .btn:hover { background: #3d4d66; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>보안 설정 확인</h1>
+    <p class="subtitle">DEPLOYMENT_PASSWORD 환경 변수 설정 여부를 확인합니다.</p>
+
+    <div class="card">
+      <h2>api/check-auth-env 결과</h2>
+      <p id="loading" class="muted">확인 중…</p>
+      <p id="result" class="result hidden"></p>
+      <p id="desc" class="muted hidden"></p>
+      <a href="/" class="btn">메인으로 돌아가기</a>
+    </div>
+  </div>
+
+  <script>
+    (async () => {
+      const loading = document.getElementById('loading');
+      const resultEl = document.getElementById('result');
+      const descEl = document.getElementById('desc');
+      try {
+        const res = await fetch('/api/check-auth-env');
+        const data = await res.json();
+        loading.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+        descEl.classList.remove('hidden');
+        if (data.password_configured) {
+          resultEl.textContent = 'password_configured: true';
+          resultEl.className = 'result yes';
+          descEl.textContent = 'Vercel에 DEPLOYMENT_PASSWORD가 설정되어 있습니다. 비밀번호 인증을 사용하려면 앱에 인증 로직을 추가하면 됩니다.';
+        } else {
+          resultEl.textContent = 'password_configured: false';
+          resultEl.className = 'result no';
+          descEl.textContent = 'DEPLOYMENT_PASSWORD가 설정되지 않았거나 앱에 전달되지 않은 상태입니다. Vercel Environment Variables에서 설정 후 재배포하세요.';
+        }
+      } catch (e) {
+        loading.textContent = '확인 실패: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>

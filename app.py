@@ -52,6 +52,23 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB
 DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "domino_inventory_training.xlsx")
 
 
+def _get_deployment_password():
+    """DEPLOYMENT_PASSWORD 환경변수 (요청 시점에 읽음)"""
+    return (os.environ.get("DEPLOYMENT_PASSWORD") or "").strip()
+
+
+@app.route("/api/check-auth-env")
+def check_auth_env():
+    """DEPLOYMENT_PASSWORD 설정 여부 확인. 비밀번호 값은 노출하지 않음."""
+    return jsonify({"password_configured": bool(_get_deployment_password())})
+
+
+@app.route("/check-auth-env")
+def check_auth_env_page():
+    """check-auth-env 확인 전용 페이지."""
+    return render_template("check_auth_env.html")
+
+
 @app.route("/")
 def index():
     return render_template("index.html", sender_email=SENDER_EMAIL)
